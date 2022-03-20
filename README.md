@@ -2,6 +2,7 @@
 
 ## What It Does
 Arma 3 Framework for adding keybinds that can be modified by players. Allows mission makers a simplified way to create new keybinds while allowing users the ability to modify said keybinds to other keys.
+<img src="https://i.imgur.com/JGsLvuv.png" width="500">
 
 ## Keybind Syntax
 
