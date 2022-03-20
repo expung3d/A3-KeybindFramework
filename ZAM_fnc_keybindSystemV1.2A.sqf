@@ -124,7 +124,13 @@ ZAM_fnc_populateKeybindsInterface = {
 				};
 			};
 		}forEach _modiferData;
-		_listnbox lnbAddRow [_keyBindText,_displayName,_description];
+		private _descriptionText = _description;
+		if(count _descriptionText > 25) then {
+			_descriptionText = [_descriptionText,0,24] call BIS_fnc_trimString;
+			_descriptionText = _descriptionText insert [25,"..."];
+		};
+		private _index = _listnbox lnbAddRow [_keyBindText,_displayName,_descriptionText];
+		_listnBox lnbSetTooltip [[_index,0],_description];
 	}forEach ZAM_keyBindData;
 };
 
