@@ -14,51 +14,92 @@ comment "
 			_shift: Bool if shift is pressed
 			_ctrl: Bool if ctrl is pressed
 			_alt: Bool if alt is pressed
-		4: BOOL - Is it a Zeus keybind?
+		4: BOOL - Shift needed
+		5: BOOL - Ctrl needed
+		6: BOOL - Alt needed
+		7: BOOL - Is it a Zeus keybind?
 
 	Return:
 		Index of keybind in keybind data array
 
-	Example:
-		['Earplugs',1,{1 fadeSound 0.3;}] call ZAM_fnc_newKeybind;
+	Examples:
+		(End Key)
+		['Earplugs','Put in virtual earplugs',207,{1 fadeSound 0.3;}] call ZAM_fnc_newKeybind;
+
+		(Shift + V)
+		['Jump','Make your character go boing',47,{[] call fn_doJump;},true] call ZAM_fnc_newKeybind;
 ";
 
 ZAM_fnc_newKeybind = {
-	params ["_displayName","_description","_keyCode","_code",["_zeusKeybind",false]];
+	params ["_displayName","_description","_keyCode","_code",["_shift",false],["_ctrl",false],["_alt",false],["_zeusKeybind",false]];
 	if(isNil "ZAM_keyBindData") then {
 		ZAM_keyBindData = [];
 	};
 	private _keybindStorageString = format ["ZAM_keyBind_%1",count ZAM_keyBindData];
 	private _display = if(_zeusKeybind) then {findDisplay 312} else {findDisplay 46};
+	private _ifStatement = format ["if(_key == %1) then",_keyCode];
+	{
+		if(_x) then {
+			switch (_forEachIndex) do {
+				case 0: {
+					_ifStatement = _ifStatement insert [13," && _shift"];
+				};
+				case 1: {
+					_ifStatement = _ifStatement insert [13," && _ctrl"];
+				};
+				case 2: {
+					_ifStatement = _ifStatement insert [13," && _alt"];
+				};
+			};
+		};
+	}forEach [_shift,_ctrl,_alt];
 	private _codeCompile = compile (format ["
 		params ['_display', '_key', '_shift', '_ctrl', '_alt'];
-		if(_key == %1) then %2
-	",_keyCode,_code]);
+		%1 %2
+	",_ifStatement,_code]);
+	copyToClipboard (str _codeCompile);
 	missionNamespace setVariable [
 		_keybindStorageString,
 		_display displayAddEventHandler ["KeyDown",_codeCompile]
 	];
 
-	ZAM_keyBindData pushBack [_displayName,_description,_display,_keyCode,_code,_keybindStorageString];
+	ZAM_keyBindData pushBack [_displayName,_description,_display,_keyCode,_code,_keybindStorageString,[_shift,_ctrl,_alt]];
 };
 
 ZAM_fnc_changeKeybindKey = {
-	params ["_index","_newKeyCode"];
+	params ["_index","_newKeyCode","_modifierDataNew"];
 	private _keyBindData = ZAM_keyBindData select _index;
-	_keyBindData params ["_displayName","_description","_display","_keyCode","_code","_keybindStorageString"];
+	_keyBindData params ["_displayName","_description","_display","_keyCode","_code","_keybindStorageString","_modifierData"];
 	if(_keyCode != _newKeyCode) then {
 		_display displayRemoveEventHandler ["KeyDown",missionNamespace getVariable [_keybindStorageString,-1]];
+		private _ifStatement = format ["if(_key == %1) then",_newKeyCode];
+		{
+			if(_x) then {
+				switch (_forEachIndex) do {
+					case 0: {
+						_ifStatement = _ifStatement insert [13," && _shift"];
+					};
+					case 1: {
+						_ifStatement = _ifStatement insert [13," && _ctrl"];
+					};
+					case 2: {
+						_ifStatement = _ifStatement insert [13," && _alt"];
+					};
+				};
+			};
+		}forEach _modifierDataNew;
+
 		private _codeCompile = compile (format ["
 			params ['_display', '_key', '_shift', '_ctrl', '_alt'];
-			if(_key == %1) then %2
-		",_newKeyCode,_code]);
+			%1 %2
+		",_ifStatement,_code]);
 
 		missionNamespace setVariable [
 			_keybindStorageString,
 			_display displayAddEventHandler ["KeyDown",_codeCompile]
 		];
 
-		ZAM_keyBindData set [_index,[_displayName,_description,_display,_newKeyCode,_code,_keybindStorageString]]
+		ZAM_keyBindData set [_index,[_displayName,_description,_display,_newKeyCode,_code,_keybindStorageString,_modifierDataNew]]
 	};
 };
 
@@ -66,8 +107,24 @@ ZAM_fnc_populateKeybindsInterface = {
 	params ["_listnbox"];
 	if(isNil "ZAM_keyBindData") exitWith {};
 	{
-		_x params ["_displayName","_description","","_keyCode","",""];
-		_listnbox lnbAddRow [keyName _keyCode,_displayName,_description];
+		_x params ["_displayName","_description","","_keyCode","","","_modiferData"];
+		private _keyBindText = keyName _keyCode;
+		{
+			if(_x) then {
+				switch (_forEachIndex) do {
+					case 0: {
+						_keyBindText = _keyBindText insert [0,"[SHIFT] + "];
+					};
+					case 1: {
+						_keyBindText = _keyBindText insert [0,"[CTRL] + "];
+					};
+					case 2: {
+						_keyBindText = _keyBindText insert [0,"[ALT] + "];
+					};
+				};
+			};
+		}forEach _modiferData;
+		_listnbox lnbAddRow [_keyBindText,_displayName,_description];
 	}forEach ZAM_keyBindData;
 };
 
@@ -84,8 +141,24 @@ ZAM_fnc_changeKeybindInterface = {
 
 	if(ZAM_isChangingKeybind) then {
 		private _data = ZAM_keyBindData select (ZAM_isChangingKeybindIndex - 1);
-		_data params ["","","","_keyCode","",""];
-		_listnbox lnbSetText [[ZAM_isChangingKeybindIndex,0],keyName _keyCode];
+		_data params ["","","","_keyCode","","","_modifierData"];
+		private _keyBindText = keyName _keyCode;
+		{
+			if(_x) then {
+				switch (_forEachIndex) do {
+					case 0: {
+						_keyBindText = _keyBindText insert [0,"[SHIFT] + "];
+					};
+					case 1: {
+						_keyBindText = _keyBindText insert [0,"[CTRL] + "];
+					};
+					case 2: {
+						_keyBindText = _keyBindText insert [0,"[ALT] + "];
+					};
+				};
+			};
+		}forEach _modifierData;
+		_listnbox lnbSetText [[ZAM_isChangingKeybindIndex,0],_keyBindText];
 		_keybindMenu displayRemoveEventHandler ["KeyDown",ZAM_isChangingKeybindEH];
 	};
 
@@ -94,17 +167,32 @@ ZAM_fnc_changeKeybindInterface = {
 	_listnbox lnbSetText [[ZAM_isChangingKeybindIndex,0],"Recording input..."];
 	ZAM_isChangingKeybindEH = _keybindMenu displayAddEventHandler ["KeyDown",{
 		params ["_displayOrControl", "_key", "_shift", "_ctrl", "_alt"];
+		if(_key == 29 || _key == 56 || _key == 42) exitWith {};
 		if(_key == 1) exitWith {
 			ZAM_isChangingKeybind = false;
 			ZAM_isChangingKeybindIndex = -1;
 			_displayOrControl displayRemoveEventHandler ["KeyDown",ZAM_isChangingKeybindEH];
 			ZAM_isChangingKeybindEH = nil;
-
-			[] call ZAM_fnc_modifyKeybindsInterface;
 		};
-		[ZAM_isChangingKeybindIndex - 1,_key] call ZAM_fnc_changeKeybindKey;
+		[ZAM_isChangingKeybindIndex - 1,_key,[_shift,_ctrl,_alt]] call ZAM_fnc_changeKeybindKey;
 		private _listNBox = uiNamespace getVariable 'keyBindListnBox';
-		_listnbox lnbSetText [[ZAM_isChangingKeybindIndex,0],keyName _key];
+		private _keyBindText = keyName _key;
+		{
+			if(_x) then {
+				switch (_forEachIndex) do {
+					case 0: {
+						_keyBindText = _keyBindText insert [0,"[SHIFT] + "];
+					};
+					case 1: {
+						_keyBindText = _keyBindText insert [0,"[CTRL] + "];
+					};
+					case 2: {
+						_keyBindText = _keyBindText insert [0,"[ALT] + "];
+					};
+				};
+			};
+		}forEach [_shift,_ctrl,_alt];
+		_listnbox lnbSetText [[ZAM_isChangingKeybindIndex,0],_keyBindText];
 
 
 		ZAM_isChangingKeybind = false;
@@ -215,4 +303,4 @@ ZAM_fnc_modifyKeybindsInterface = {
 	[uiNamespace getVariable 'keyBindListnBox'] call ZAM_fnc_populateKeybindsInterface;
 };
 
-["Keybinds Menu","Edit the in-game keybinds.",74,{[] call ZAM_fnc_modifyKeybindsInterface;}] call ZAM_fnc_newKeybind;
+["Keybinds Menu","Edit the in-game keybinds.",74,{[] call ZAM_fnc_modifyKeybindsInterface;},false,true] call ZAM_fnc_newKeybind;
