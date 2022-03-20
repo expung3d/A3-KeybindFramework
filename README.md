@@ -7,9 +7,9 @@ Arma 3 Framework for adding keybinds that can be modified by players. Allows mis
 
 ## Keybind Syntax
 
-["Earplugs","Put in your virtual earplugs",207,{1 fadeSound 0.3;},false,false,false,false] call ZAM_fnc_newKeybind;
-
-Creates Keybind on END key that fades sound.
+```sqf
+["Earplugs","Put in your virtual earplugs",207,{1 fadeSound 0.3;},false,false,false,false] call ZAM_fnc_newKeybind; //Creates Keybind on END key that fades sound.
+```
 
 0. Keybind display name (STRING)
 1. Keybind description (STRING)
