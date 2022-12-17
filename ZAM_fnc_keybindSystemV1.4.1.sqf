@@ -24,13 +24,16 @@ comment "
 
 	Examples:
 		(End Key)
-		['Earplugs','Put in virtual earplugs',207,{1 fadeSound 0.3;}] call ZAM_fnc_newKeybind;
+		['Earplugs','Put in virtual earplugs',207,{call insertEarplugs;}] call ZAM_fnc_newKeybind;
 
 		(Shift + V)
-		['Jump','Make your character go boing',47,{[] call fn_doJump;},true] call ZAM_fnc_newKeybind;
+		['Jump','Make your character go boing',47,{call fn_doJump;},true] call ZAM_fnc_newKeybind;
 
-		(Ctrl + - [NUM])
-		['Keybinds Menu','Edit the in-game keybinds.',74,{[] call ZAM_fnc_modifyKeybindsInterface;},false,true] call ZAM_fnc_newKeybind;
+		(Ctrl + 0)
+		['Keybinds Menu','Edit the in-game keybinds.',11,{call ZAM_fnc_modifyKeybindsInterface;},false,true] call ZAM_fnc_newKeybind;
+
+		(Ctrl + Y)
+		['Close Zeus','Close the Zeus interface.',21,{call closeZeusInterface;},false,true,false,true] call ZAM_fnc_newKeybind;
 ";
 
 ZAM_fnc_newKeybind = {
@@ -41,6 +44,15 @@ ZAM_fnc_newKeybind = {
 	private _display = if(_zeusKeybind) then {findDisplay 312} else {findDisplay 46};
 
 	ZAM_keyBindData pushBack [_displayName,_description,_display,_keyCode,_code,[_shift,_ctrl,_alt]];
+};
+
+ZAM_fnc_removeKeybind = {
+	params ["_keybindID"];
+	if((count ZAM_keyBindData - 1) >= _keyBindId) exitWith {
+		ZAM_keyBindData deleteAt _keyBindID;
+		true
+	};
+	false
 };
 
 ZAM_fnc_changeKeybindKey = {
@@ -74,9 +86,9 @@ ZAM_fnc_populateKeybindsInterface = {
 			};
 		}forEach _modiferData;
 		private _descriptionText = _description;
-		if(count _descriptionText > 25) then {
-			_descriptionText = [_descriptionText,0,24] call BIS_fnc_trimString;
-			_descriptionText = _descriptionText insert [25,"..."];
+		if(count _descriptionText > 28) then {
+			_descriptionText = [_descriptionText,0,27] call BIS_fnc_trimString;
+			_descriptionText = _descriptionText insert [28,"..."];
 		};
 		private _index = _listnbox lnbAddRow [_keyBindText,_displayName,_descriptionText];
 		_listnBox lnbSetTooltip [[_index,0],_description];
@@ -263,6 +275,8 @@ ZAM_fnc_modifyKeybindsInterface = {
 };
 
 ZAM_fnc_keyBindSystemInit = {
+	waitUntil {uisleep 0.1;!isNull (findDisplay 46) && alive player};
+	sleep 0.1;
 	if(isNil "ZAM_keyBindData") then {
 		ZAM_keyBindData = [];
 	};
@@ -288,5 +302,5 @@ ZAM_fnc_keyBindSystemInit = {
 	}];
 };
 
-["Keybinds Menu","Edit the in-game keybinds.",74,{[] call ZAM_fnc_modifyKeybindsInterface;},false,true] call ZAM_fnc_newKeybind;
+["Keybinds Menu","Edit the in-game keybinds.",11,{call ZAM_fnc_modifyKeybindsInterface;},false,true] call ZAM_fnc_newKeybind;
 [] call ZAM_fnc_keyBindSystemInit;
